@@ -1,0 +1,160 @@
+window.decimalseparator ='.';
+window.groupseparator =',';
+window.negativeprefix ='-';
+window.negativesuffix ='';
+window.weekstart  ='1';
+window.dateformat ='MM/DD/YYYY';
+window.longdateformat ='Month DD, YYYY';
+window.timeformat ='fmHH:fmMI am';
+window.timeformatwithseconds ='fmHH:fmMI:SS am';
+window.decimalseparator ='.';
+window.groupseparator =',';
+window.negativeprefix ='-';
+window.negativesuffix ='';
+window.number_blacklist_regex = new RegExp('[^\\.\\-\\d]','g');
+window.datetime_am_string ='am';
+window.datetime_pm_string ='pm';
+window.datetime_short_months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",""];
+window.phoneformat ="123-456-7890";
+
+var fieldtosubrecordmap = new Array();
+var fieldtosubrecordfieldmap = new Array();
+function page_unload() {
+    if(document.activeElement != null && document.activeElement.form != null) {
+        document.activeElement.blur();
+    }
+    if (NS.form.isChanged()) {
+        return ('You have not yet submitted this record.');
+    }
+}
+
+function save_record(lastcall) {
+if(document.forms['main_form'].bonsubmitisnull) return true;
+if (!NS.form.isInited()) return false;
+for(key in window.subrecordcache)
+{
+    if (window.subrecordcache.hasOwnProperty(key) && window.subrecordcache[key])
+    {
+        window.subrecordcache[key].commit();
+    }
+}
+var form = document.forms['main_form'];
+if (form.submitted) {
+if (form.submitted.value == 'T') { 
+var resubmit = false;
+resubmit = confirm('You have already submitted this form, would you like to submit it again?'); 
+if(!resubmit) return false;
+}
+}
+try {
+for(key in window.subrecordcache)
+{
+    if (window.subrecordcache.hasOwnProperty(key) && window.subrecordcache[key])
+    {
+        window.subrecordcache[key].commit();
+    }
+}
+} catch(err) {
+  alert('You cannot submit this form due to an unexpected error.'); return false;
+}
+if (!NS.form.isChanged() && !confirm('The record has not changed.  Do you really want to submit it?')) return false;
+setWindowChanged(window, false);
+if(lastcall == true && form.submitted) form.submitted.value='T';
+return true;
+}
+function page_reset() {
+document.page_is_resetting=true;
+document.forms['main_form'].reset();
+resetNLDropDowns(document.forms['main_form']);
+resetNLPopupSelects(document.forms['main_form']);
+resetHtmlEditors(document.forms['main_form']);
+setWindowChanged(window, false);
+page_init3();
+var savechanged = NS.form.isChanged();
+setWindowChanged(window, savechanged);
+NS.form.setValid(true);
+window.clickCount=0;
+if (window.clickCount == 0)
+{
+setTimeout(function(){if ( isFocusable( document.forms['main_form'].elements['mCharData'] ) ) { document.forms['main_form'].elements['mCharData'].focus();}}, 0);
+}
+nlapiSetFieldValue('nsbrowserenv', 'istop=' + (window==top ? 'T':'F'));
+document.page_is_resetting=false;
+}
+function checkMachineValid(mach)
+{
+ if (document.forms[0].elements[mach+'valid'] != null && document.forms[0].elements[mach+'valid'].value=='F') {
+ alert('One or more sublists had errors.'); return false;}
+ return true;
+}
+function delete_record(url) {
+if (confirm('Are you sure you want to ' + (url == 'void.jsp' ? 'void' : 'delete') + ' this '+'record?')) {
+document.forms['main_form'].onsubmit=null;document.forms['main_form'].bonsubmitisnull=true
+setWindowChanged(window, false);
+return true;
+}
+else return false;
+}
+function appendMastersForQueryRequest(sublistId, queryFieldId, url){
+var masters = null;
+if(sublistId == null){ masters = fmasters.main[queryFieldId]; }
+else if(sublistId != null){ masters = fmasters.sublists[sublistId] ? fmasters.sublists[sublistId][queryFieldId] : null; }
+if(masters && Array.isArray(masters)){
+masters.forEach(function(master){
+var dotIndex = master.indexOf('.'), sublistId, fieldId;
+if(dotIndex != -1){ sublistId = master.substring(0, dotIndex); fieldId = master.substring(dotIndex+1); }else{ fieldId = master };
+var val = sublistId ? nlapiGetCurrentLineItemValue(sublistId, fieldId) : nlapiGetFieldValue(fieldId);
+url = addParamToURL(url, 'si_'+fieldId, val);
+})
+}
+return url;
+}
+function NLEntryForm_querySelectText(fldname, machine, linenum, value) {
+if ( isValEmpty( value ) ) return null;
+var url = '/app/common/record/edittextmediaitem.nl?popup=T&e=T';
+var id = document.forms['main_form'].elements['id'].value;
+if ( !isValEmpty( id ) && id != -1 ) url = addParamToURL( url, 'id', id ); 
+url = addParamToURL( url, 'q', fldname ); 
+url = addParamToURL( url, 'si', value ); 
+url = appendMastersForQueryRequest(machine, fldname, url);
+url = addParamToURL( url, 'lookuplabel', 'T' ); 
+if ( !isValEmpty( machine ) ) url = addParamToURL( url, 'machine', machine ); 
+var response = new NLXMLHttpRequest().requestURL( url ).getBody();
+eval( response.replace(/^\s*<!--[\s\S]*?-->\s*$/gm, '') );
+return selectmap;
+}
+function NLEntryForm_querySelectValue(fldname, machine, text) {
+if ( isValEmpty( text ) ) return null;
+var url = '/app/common/record/edittextmediaitem.nl?popup=T&e=T';
+var id = document.forms['main_form'].elements['id'].value;
+if ( !isValEmpty( id ) && id != -1 ) url = addParamToURL( url, 'id', id ); 
+url = addParamToURL( url, 'q', fldname ); 
+url = addParamToURL( url, 'st', encodeURIComponent( text ) ); 
+url = appendMastersForQueryRequest(machine, fldname, url);
+url = addParamToURL( url, 'resolvelabel', 'T' ); 
+if ( !isValEmpty( machine ) ) url = addParamToURL( url, 'machine', machine ); 
+var response = new NLXMLHttpRequest().requestURL( url ).getBody();
+eval( response.replace(/^\s*<!--[\s\S]*?-->\s*$/gm, '') );
+return selectmap;
+}
+var ftabs = new Array();
+var ftypes = new Array();
+var fparents = new Array();
+var fmasters = {main:{}, sublists:{}};
+ftypes['mCharData']='textarea';
+ftabs['mCharData']='main';
+fmasters.main = (Object.freeze) ? Object.freeze(fmasters.main) : fmasters.main;
+fmasters.sublists = (Object.freeze) ? Object.freeze(fmasters.sublists) : fmasters.sublists;
+fmasters = (Object.freeze) ? Object.freeze(fmasters) : fmasters;
+var fScriptIds = null;
+(function () {return this;}())._macro = {"macroMetadata":[]};if (Object.freeze) {(function deepFreeze(obj){Object.freeze(obj);for (var p in obj) {if (!obj.hasOwnProperty(p) || !(typeof obj[p] === 'object') || Object.isFrozen(obj[p])) { continue; }deepFreeze(obj[p]);}})(_macro);}
+function addShortcut() {
+nlOpenWindow('/core/pages/addShortcut.nl?label='+encodeURIComponent('File')+'&taskid=EDIT_EDITTEXTMEDIAITEM&params=popup%3DT','addshortcut','scrollbars=no,width=450,height=250');
+}
+function localEval(s) {
+return eval(s);
+}
+<!-- 6 s: 33% #4 cache: 0% #0 -->
+<!-- Host [ a16.prod.bos ] App Version [ 2018.1.0.144 ] -->
+<!-- COMPID [ 3720022 ]  EMAIL [ fernandod@tissini.com ] URL [ /app/common/record/edittextmediaitem.nl ] Time [ Tue Sep 04 18:26:32 PDT 2018 ] -->
+<!-- Not logging slowest SQL -->

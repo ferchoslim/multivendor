@@ -1,0 +1,1 @@
+CKEDITOR.plugins.add("fieldbox",{requires:"widget",icons:"fieldbox",init:function(a){a.widgets.add("fieldbox",{upcast:function(b){return b.name=="span"&&(b.hasClass("nscke-field")||b.hasClass("nscke-label")||b.hasClass("nscke-title")||b.hasClass("nscke-nspagenumber")||b.hasClass("nscke-macro"));}});}});
